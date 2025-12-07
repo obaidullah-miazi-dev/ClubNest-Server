@@ -53,6 +53,12 @@ async function run() {
       const clubManagerInfo = req.body 
       clubManagerInfo.status = 'pending'
       clubManagerInfo.createdAt = new Date()
+
+      const email = clubManagerInfo.email 
+      const alreadyRequested = await clubManagersCollection.findOne({email})
+      if(alreadyRequested){
+        return res.send({message:'you have already requested,wait for approve'})
+      }
       const result =await clubManagersCollection.insertOne(clubManagerInfo)
       res.send(result)
     })
