@@ -28,8 +28,10 @@ async function run() {
     // db collections 
     const db = client.db('club-nest-db')
     const usersCollection = db.collection('users')
+    const clubManagersCollection = db.collection('clubManager')
 
 
+    // user related apis 
     app.post('/user',async(req,res)=>{
         const user = req.body 
         user.role = 'member'
@@ -41,6 +43,18 @@ async function run() {
         }
         const result = await usersCollection.insertOne(user)
         res.send(result)
+    })
+
+
+
+
+    // club manager related apis 
+    app.post('/clubManager',async(req,res)=>{
+      const clubManagerInfo = req.body 
+      clubManagerInfo.status = 'pending'
+      clubManagerInfo.createdAt = new Date()
+      const result =await clubManagersCollection.insertOne(clubManagerInfo)
+      res.send(result)
     })
 
     // Send a ping to confirm a successful connection
