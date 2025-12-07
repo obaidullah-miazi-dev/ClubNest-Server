@@ -53,7 +53,7 @@ async function run() {
       res.send({role:user?.role || 'member'})
     })
 
-  //  add club related apis 
+  //  club related apis 
   app.post('/addClub',async(req,res)=>{
     const clubData = req.body 
     clubData.status = 'pending'
@@ -61,6 +61,16 @@ async function run() {
     clubData.memberShipFee = Number(memberShipFee)
     clubData.createdAt = new Date()
     const result = await clubsCollection.insertOne(clubData)
+    res.send(result)
+  })
+
+  app.get('/clubs',async(req,res)=>{
+    const email = req.query.email
+    const query = {} 
+    if(email){
+      query.managerEmail = email
+    }
+    const result = await clubsCollection.find(query).toArray()
     res.send(result)
   })
 
