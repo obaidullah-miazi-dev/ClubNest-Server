@@ -29,6 +29,7 @@ async function run() {
     const db = client.db('club-nest-db')
     const usersCollection = db.collection('users')
     const clubManagersCollection = db.collection('clubManager')
+    const clubsCollection = db.collection('clubs')
 
 
     // user related apis 
@@ -52,7 +53,16 @@ async function run() {
       res.send({role:user?.role || 'member'})
     })
 
-
+  //  add club related apis 
+  app.post('/addClub',async(req,res)=>{
+    const clubData = req.body 
+    clubData.status = 'pending'
+    const memberShipFee = clubData.memberShipFee
+    clubData.memberShipFee = Number(memberShipFee)
+    clubData.createdAt = new Date()
+    const result = await clubsCollection.insertOne(clubData)
+    res.send(result)
+  })
 
 
     // club manager related apis 
