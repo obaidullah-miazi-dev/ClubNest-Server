@@ -11,7 +11,7 @@ app.use(cors())
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.g0ilve4.mongodb.net/?appName=Cluster0`;
 const client = new MongoClient(uri, {
   serverApi: {
@@ -59,6 +59,34 @@ async function run() {
 
     app.get('/getClubManager',async(req,res)=>{
       const result = await clubManagersCollection.find().toArray()
+      res.send(result)
+    })
+
+    app.patch('/clubManager/:id',async(req,res)=>{
+      const status = req.body.status 
+      const id = req.params.id 
+      const query = {_id: new ObjectId(id)}
+      const updatedInfo = {
+        $set:{
+          status: status 
+        }
+      }
+      const result = await clubManagersCollection.updateOne(query,updatedInfo)
+
+
+      // update user role to club manager 
+      if(status === 'approved'){
+        const email = req.body.email 
+        const managerQuery = {email}
+        const updateUserInfo = {
+          $set:{
+            role: 'Club-Manager'
+          }
+        }
+        const userResult = await usersCollection.updateOne(managerQuery,updateUserInfo)
+      }
+
+
       res.send(result)
     })
 
