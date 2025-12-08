@@ -74,6 +74,13 @@ async function run() {
     res.send(result)
   })
 
+  app.get('/clubs/:id',async(req,res)=>{
+    const id = req.params.id 
+    const query = {_id: new ObjectId(id)}
+    const result = await clubsCollection.find(query).toArray()
+    res.send(result)
+  })
+
 
     // club manager related apis 
     app.post('/clubManager',async(req,res)=>{
