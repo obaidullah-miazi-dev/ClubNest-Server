@@ -98,6 +98,19 @@ async function run() {
       res.send(result);
     });
 
+    app.patch("/clubStatus/:id", async (req, res) => {
+      const id = req.params.id;
+      const status = req.body.status;
+      const query = { _id: new ObjectId(id) };
+      const updateStatus = {
+        $set: {
+          status: status,
+        },
+      };
+      const result = await clubsCollection.updateOne(query, updateStatus);
+      res.send(result);
+    });
+
     // club manager related apis
     app.post("/clubManager", async (req, res) => {
       const clubManagerInfo = req.body;
