@@ -27,6 +27,7 @@ async function run() {
     const usersCollection = db.collection("users");
     const clubManagersCollection = db.collection("clubManager");
     const clubsCollection = db.collection("clubs");
+    const membershipCollection = db.collection('membership')
 
     // user related apis
     app.post("/user", async (req, res) => {
@@ -99,6 +100,16 @@ async function run() {
 
       res.send(result);
     });
+
+
+    // membership related apis 
+    app.post('/addMembership',async(req,res)=>{
+      const membershipInfo = req.body 
+      membershipInfo.createdAt = new Date 
+      membershipInfo.status = 'pendingPayment'
+      const result = await membershipCollection.insertOne(membershipInfo)
+      res.send(result)
+    })
 
     //  club related apis
     app.post("/addClub", async (req, res) => {
