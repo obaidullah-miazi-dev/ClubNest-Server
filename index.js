@@ -54,6 +54,52 @@ async function run() {
       res.send({ role: user?.role || "member" });
     });
 
+    app.patch("/user/:id", async (req, res) => {
+      const status = req.body.status;
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedInfo = {
+        $set: {
+          role: status,
+        },
+      };
+      const result = await usersCollection.updateOne(query, updatedInfo);
+
+      // update user role to admin
+      if (status === "admin") {
+        const email = req.body.email;
+        const managerQuery = { email };
+        const updateUserInfo = {
+          $set: {
+            role: "admin",
+          },
+        };
+        const userResult = await usersCollection.updateOne(
+          managerQuery,
+          updateUserInfo
+        );
+        res.send(userResult)
+      }
+
+      // update user role to member
+      if (status === "member") {
+        const email = req.body.email;
+        const managerQuery = { email };
+        const updateUserInfo = {
+          $set: {
+            role: "member",
+          },
+        };
+        const userResult = await usersCollection.updateOne(
+          managerQuery,
+          updateUserInfo
+        );
+        res.send(userResult)
+      }
+
+      res.send(result);
+    });
+
     //  club related apis
     app.post("/addClub", async (req, res) => {
       const clubData = req.body;
