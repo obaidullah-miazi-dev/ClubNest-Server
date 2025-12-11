@@ -167,6 +167,23 @@ async function run() {
           managerQuery,
           updateUserInfo
         );
+        res.send(userResult)
+      }
+
+      // update user role to member
+      if (status === "rejected") {
+        const email = req.body.email;
+        const managerQuery = { email };
+        const updateUserInfo = {
+          $set: {
+            role: "member",
+          },
+        };
+        const userResult = await usersCollection.updateOne(
+          managerQuery,
+          updateUserInfo
+        );
+        res.send(userResult)
       }
 
       res.send(result);
