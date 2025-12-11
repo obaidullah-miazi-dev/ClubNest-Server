@@ -42,6 +42,11 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/users',async(req,res)=>{
+      const result = await usersCollection.find().toArray()
+      res.send(result)
+    })
+
     app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
       const query = { email };
@@ -62,9 +67,14 @@ async function run() {
 
     app.get("/clubs", async (req, res) => {
       const email = req.query.email;
+      const status = req.query.status
       const query = {};
       if (email) {
         query.managerEmail = email;
+      }
+
+      if(status){
+        query.status = status
       }
       const result = await clubsCollection.find(query).toArray();
       res.send(result);
