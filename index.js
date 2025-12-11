@@ -111,6 +111,16 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/membershipGet',async(req,res)=>{
+      const email = req.query.email 
+      const query = {}
+      if(email){
+        query.memberEmail = email
+      }
+      const result = await membershipCollection.find(query).toArray()
+      res.send(result)
+    })
+
     //  club related apis
     app.post("/addClub", async (req, res) => {
       const clubData = req.body;
