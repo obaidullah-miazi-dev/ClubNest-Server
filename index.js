@@ -107,7 +107,12 @@ async function run() {
     app.post("/addMembership", async (req, res) => {
       const membershipInfo = req.body;
       membershipInfo.createdAt = new Date();
-      membershipInfo.status = "pendingPayment";
+
+      if (membershipInfo.clubFee === 0) {
+        membershipInfo.status = "pending join";
+      } else {
+        membershipInfo.status = "pendingPayment";
+      }
       const result = await membershipCollection.insertOne(membershipInfo);
       res.send(result);
     });
@@ -158,9 +163,9 @@ async function run() {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       const transactionId = session.payment_intent;
       const query = { transactionId: transactionId };
-      console.log(transactionId)
+      console.log(transactionId);
       const existingPayment = await paymentsCollection.findOne(query);
-      console.log(existingPayment)
+      console.log(existingPayment);
       if (existingPayment) {
         return res.send({
           message: "aleardy exist",
@@ -212,6 +217,30 @@ async function run() {
       }
 
       return res.send({ success: false });
+    });
+
+    app.patch("/freeJoin", async (req, res) => {
+      const clubId = req.body.clubId;
+      const memberId = req.body.memberId;
+      const query = { _id: new ObjectId(clubId) };
+      const update = {
+        $inc: { membersCount: 1 },
+      };
+      const result = await clubsCollection.updateOne(query, update);
+
+      const updateMembershipStatus = {
+        $set: {
+          status: "active",
+        },
+      };
+
+      const memberQuery = { _id: new ObjectId(memberId) };
+      const membershipResult = await membershipCollection.updateOne(
+        memberQuery,
+        updateMembershipStatus
+      );
+
+      res.send(membershipResult,result)
     });
 
     //  club related apis
