@@ -21,7 +21,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
 
     // db collections
     const db = client.db("club-nest-db");
@@ -30,6 +30,7 @@ async function run() {
     const clubsCollection = db.collection("clubs");
     const membershipCollection = db.collection("membership");
     const paymentsCollection = db.collection("payments");
+    const eventsCollection = db.collection("events");
 
     // user related apis
     app.post("/user", async (req, res) => {
@@ -240,19 +241,19 @@ async function run() {
         updateMembershipStatus
       );
 
-      res.send(membershipResult,result)
+      res.send(membershipResult, result);
     });
 
-    app.get('/payments',async(req,res)=>{
-      const email = req.query.email 
-      const query = {}
-      if(email){
-        query.memberEmail = email
+    app.get("/payments", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.memberEmail = email;
       }
 
-      const result = await paymentsCollection.find(query).toArray()
-      res.send(result)
-    })
+      const result = await paymentsCollection.find(query).toArray();
+      res.send(result);
+    });
 
     //  club related apis
     app.post("/addClub", async (req, res) => {
@@ -389,8 +390,24 @@ async function run() {
       res.send(result);
     });
 
+    // event related apis
+    app.post("/addEvent", async (req, res) => {
+      const eventData = req.body;
+      const clubId = eventData.clubId
+      eventData.status = "registered";
+      eventData.createdAt = new Date();
+      eventData.eventDate = new Date(eventData.eventDate)
+      const result = await eventsCollection.insertOne(eventData);
+      const query = {_id:new ObjectId(clubId)}
+      const update = {
+        $inc: { eventsCount: 1 },
+      };
+      const updateresult = await clubsCollection.updateOne(query, update);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
