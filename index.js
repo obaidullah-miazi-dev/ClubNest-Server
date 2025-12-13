@@ -243,6 +243,17 @@ async function run() {
       res.send(membershipResult,result)
     });
 
+    app.get('/payments',async(req,res)=>{
+      const email = req.query.email 
+      const query = {}
+      if(email){
+        query.memberEmail = email
+      }
+
+      const result = await paymentsCollection.find(query).toArray()
+      res.send(result)
+    })
+
     //  club related apis
     app.post("/addClub", async (req, res) => {
       const clubData = req.body;
