@@ -423,6 +423,19 @@ async function run() {
       res.send(result)
     })
 
+    app.patch('/editEvent/:id',async(req,res)=>{
+      const id = req.params.id 
+      const query = {_id: new ObjectId(id)}
+      const eventData = req.body 
+      eventData.eventDate = new Date(eventData.eventDate)
+      const update = {
+        $set:eventData
+      }
+      const result = await eventsCollection.updateOne(query,update)
+      console.log(result)
+      res.send(result)
+    })
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
