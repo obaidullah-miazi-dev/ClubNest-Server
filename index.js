@@ -31,6 +31,7 @@ async function run() {
     const membershipCollection = db.collection("membership");
     const paymentsCollection = db.collection("payments");
     const eventsCollection = db.collection("events");
+    const eventRegistrationCollection = db.collection('eventRegistration')
 
     // user related apis
     app.post("/user", async (req, res) => {
@@ -440,6 +441,13 @@ async function run() {
       const id = req.params.id 
       const query = {_id: new ObjectId(id)}
       const result = await eventsCollection.deleteOne(query)
+      res.send(result)
+    })
+
+    app.post('/addEventRegistration',async(req,res)=>{
+      const eventData = req.body
+      eventData.registeredAt= new Date() 
+      const result = await eventRegistrationCollection.insertOne(eventData)
       res.send(result)
     })
 
