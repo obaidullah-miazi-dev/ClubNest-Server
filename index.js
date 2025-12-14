@@ -212,6 +212,7 @@ async function run() {
           success: true,
           clubId: session.metadata.clubId,
           clubName: session.metadata.clubName,
+          amount: session.amount_total / 100,
           transactionId: session.payment_intent,
           paymentInfo: paymentResult,
         });
@@ -394,7 +395,6 @@ async function run() {
     app.post("/addEvent", async (req, res) => {
       const eventData = req.body;
       const clubId = eventData.clubId
-      eventData.status = "registered";
       eventData.createdAt = new Date();
       eventData.eventDate = new Date(eventData.eventDate)
       const result = await eventsCollection.insertOne(eventData);
@@ -405,6 +405,16 @@ async function run() {
       const updateresult = await clubsCollection.updateOne(query, update);
       res.send(result);
     });
+
+    app.get('/getEvents',async(req,res)=>{
+      const email = req.query.email
+      const query = {}
+      if(email){
+        query.clubEmail = email
+      }
+      const result = await eventsCollection.find(query).toArray()
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
