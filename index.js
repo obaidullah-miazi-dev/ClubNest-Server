@@ -31,7 +31,7 @@ async function run() {
     const membershipCollection = db.collection("membership");
     const paymentsCollection = db.collection("payments");
     const eventsCollection = db.collection("events");
-    const eventRegistrationCollection = db.collection('eventRegistration')
+    const eventRegistrationCollection = db.collection("eventRegistration");
 
     // user related apis
     app.post("/user", async (req, res) => {
@@ -395,11 +395,11 @@ async function run() {
     // event related apis
     app.post("/addEvent", async (req, res) => {
       const eventData = req.body;
-      const clubId = eventData.clubId
+      const clubId = eventData.clubId;
       eventData.createdAt = new Date();
-      eventData.eventDate = new Date(eventData.eventDate)
+      eventData.eventDate = new Date(eventData.eventDate);
       const result = await eventsCollection.insertOne(eventData);
-      const query = {_id:new ObjectId(clubId)}
+      const query = { _id: new ObjectId(clubId) };
       const update = {
         $inc: { eventsCount: 1 },
       };
@@ -407,59 +407,67 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/getEvents',async(req,res)=>{
-      const email = req.query.email
-      const query = {}
-      if(email){
-        query.clubEmail = email
+    app.get("/getEvents", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.clubEmail = email;
       }
-      const result = await eventsCollection.find(query).toArray()
-      res.send(result)
-    })
+      const result = await eventsCollection.find(query).toArray();
+      res.send(result);
+    });
 
-    app.get('/getEvent/:id',async(req,res)=>{
-      const id = req.params.id 
-      const query = {_id: new ObjectId(id)}
-      const result = await eventsCollection.find(query).toArray()
-      res.send(result)
-    })
+    app.get("/getEvent/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await eventsCollection.find(query).toArray();
+      res.send(result);
+    });
 
-    app.patch('/editEvent/:id',async(req,res)=>{
-      const id = req.params.id 
-      const query = {_id: new ObjectId(id)}
-      const eventData = req.body 
-      eventData.eventDate = new Date(eventData.eventDate)
+    app.patch("/editEvent/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const eventData = req.body;
+      eventData.eventDate = new Date(eventData.eventDate);
       const update = {
-        $set:eventData
+        $set: eventData,
+      };
+      const result = await eventsCollection.updateOne(query, update);
+      console.log(result);
+      res.send(result);
+    });
+
+    app.delete("/deleteEvent/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await eventsCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.post("/addEventRegistration", async (req, res) => {
+      const eventData = req.body;
+      eventData.registeredAt = new Date();
+      const result = await eventRegistrationCollection.insertOne(eventData);
+      res.send(result);
+    });
+
+    app.get("/getRegisteredEvents", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.userEmail = email;
       }
-      const result = await eventsCollection.updateOne(query,update)
-      console.log(result)
-      res.send(result)
-    })
+      const result = await eventRegistrationCollection.find(query).toArray();
+      res.send(result);
+    });
 
-    app.delete('/deleteEvent/:id',async(req,res)=>{
-      const id = req.params.id 
-      const query = {_id: new ObjectId(id)}
-      const result = await eventsCollection.deleteOne(query)
-      res.send(result)
-    })
+    app.delete("/cancelRegister/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
 
-    app.post('/addEventRegistration',async(req,res)=>{
-      const eventData = req.body
-      eventData.registeredAt= new Date() 
-      const result = await eventRegistrationCollection.insertOne(eventData)
-      res.send(result)
-    })
-
-    app.get('/getRegisteredEvents',async(req,res)=>{
-      const email = req.query.email 
-      const query = {}
-      if(email){
-        query.userEmail = email
-      }
-      const result = await eventRegistrationCollection.find(query).toArray()
-      res.send(result)
-    })
+      const result = await eventRegistrationCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
