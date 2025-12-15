@@ -451,6 +451,16 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/getRegisteredEvents',async(req,res)=>{
+      const email = req.query.email 
+      const query = {}
+      if(email){
+        query.userEmail = email
+      }
+      const result = await eventRegistrationCollection.find(query).toArray()
+      res.send(result)
+    })
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
