@@ -324,6 +324,23 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/filteredClubs", async (req, res) => {
+      const { clubType, search } = req.query;
+
+      let query = { status: "approved" };
+
+      if (clubType && clubType !== "all") {
+        query.category = { $regex: clubType, $options: "i" };
+      }
+
+      if (search) {
+        query.clubName = { $regex: search, $options: "i" };
+      }
+
+      const result = await clubsCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // club manager related apis
     app.post("/clubManager", async (req, res) => {
       const clubManagerInfo = req.body;
