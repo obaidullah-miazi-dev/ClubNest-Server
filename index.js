@@ -486,6 +486,23 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/filteredEvents", async (req, res) => {
+      const { category, search } = req.query;
+
+      let query = {};
+
+      if (category && category !== "all") {
+        query.category = { $regex: category, $options: "i" };
+      }
+
+      if (search) {
+        query.eventName = { $regex: search, $options: "i" };
+      }
+
+      const result = await eventsCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
