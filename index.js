@@ -129,6 +129,19 @@ async function run() {
       res.send(result);
     });
 
+    app.patch('/updateMembershipStatus/:id',async(req,res)=>{
+      const id = req.params.id 
+      const query = {_id: new ObjectId(id)}
+      const status = req.body.status 
+      const updateStatus = {
+        $set:{
+          status: status
+        }
+      }
+      const result = await membershipCollection.updateOne(query,updateStatus)
+      res.send(result)
+    })
+
     // payment related apis
     app.post("/create-checkout-session", async (req, res) => {
       const paymentInfo = req.body;
