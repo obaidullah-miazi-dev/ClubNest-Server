@@ -69,6 +69,20 @@ async function run() {
       next();
     };
 
+
+    // club manager middle ware for verfiying club Manager
+    const clubManagerVerify = async (req, res, next) => {
+      const email = req.decoded_email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+
+      if (!user || user.role !== "Club-Manager") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
+      next();
+    };
+
     // user related apis
     app.post("/user", async (req, res) => {
       const user = req.body;
