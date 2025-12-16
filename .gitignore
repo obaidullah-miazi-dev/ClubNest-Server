@@ -1,3 +1,4 @@
 node_modules
 .env
 firebaseSdk.json
+encode.js
