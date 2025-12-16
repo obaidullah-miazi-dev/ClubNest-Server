@@ -20,11 +20,11 @@ const client = new MongoClient(uri, {
   },
 });
 
-// firebase token 
+// firebase token
 const serviceAccount = require("./firebaseSdk.json");
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
 });
 
 async function run() {
@@ -41,7 +41,7 @@ async function run() {
     const eventsCollection = db.collection("events");
     const eventRegistrationCollection = db.collection("eventRegistration");
 
-     // middleware for security
+    // middleware for security
     const firebaseToken = async (req, res, next) => {
       const token = req.headers.authorization;
       if (!token) {
@@ -53,6 +53,19 @@ async function run() {
         const decode = await admin.auth().verifyIdToken(tokenId);
         req.decoded_email = decode.email;
       } catch (err) {}
+      next();
+    };
+
+    // admin middle ware for vverfiying admin
+    const adminVerify = async (req, res, next) => {
+      const email = req.decoded_email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+
+      if (!user || user.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       next();
     };
 
@@ -82,7 +95,7 @@ async function run() {
       res.send({ role: user?.role || "member" });
     });
 
-    app.patch("/user/:id", async (req, res) => {
+    app.patch("/user/:id",adminVerify, async (req, res) => {
       const status = req.body.status;
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -142,7 +155,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/membershipGet",firebaseToken, async (req, res) => {
+    app.get("/membershipGet", firebaseToken, async (req, res) => {
       const email = req.query.email;
       const query = {};
       if (email) {
@@ -152,18 +165,18 @@ async function run() {
       res.send(result);
     });
 
-    app.patch('/updateMembershipStatus/:id',async(req,res)=>{
-      const id = req.params.id 
-      const query = {_id: new ObjectId(id)}
-      const status = req.body.status 
+    app.patch("/updateMembershipStatus/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const status = req.body.status;
       const updateStatus = {
-        $set:{
-          status: status
-        }
-      }
-      const result = await membershipCollection.updateOne(query,updateStatus)
-      res.send(result)
-    })
+        $set: {
+          status: status,
+        },
+      };
+      const result = await membershipCollection.updateOne(query, updateStatus);
+      res.send(result);
+    });
 
     // payment related apis
     app.post("/create-checkout-session", async (req, res) => {
