@@ -573,7 +573,7 @@ async function run() {
     });
 
     // Admin Stats API
-    app.get("/admin-stats",firebaseToken, adminVerify,async (req, res) => {
+    app.get("/admin-stats", async (req, res) => {
       try {
         // Total events created
         const totalEvents = await eventsCollection
@@ -606,85 +606,143 @@ async function run() {
         const totalClubsCount =
           totalClubs.length > 0 ? totalClubs[0].totalClubs : 0;
 
-        res.send({
-          totalEvents: totalEventsCount,
-          totalEarnings: totalEarningsAmount,
-          totalClubs: totalClubsCount,
-        });
+        // Total members (users with role "member")
+        const totalMembers = await usersCollection
+          .aggregate([
+            { $match: { role: "member" } },
+            { $group: { _id: null, count: { $sum: 1 } } },
+            { $project: { _id: 0, totalMembers: "$count" } },
+          ])
+          .toArray();
+        const totalMembersCount =
+          totalMembers.length > 0 ? totalMembers[0].totalMembers : 0;
+
+        // Daily earnings (sum for today)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dailyEarnings = await paymentsCollection
+          .aggregate([
+            {
+              $match: {
+                paymentStatus: "paid",
+                PaidAt: { $gte: today, $lt: tomorrow },
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+            { $project: { _id: 0, dailyEarnings: "$total" } },
+          ])
+          .toArray();
+        const dailyAmount =
+          dailyEarnings.length > 0 ? dailyEarnings[0].dailyEarnings : 0;
+
+        // Weekly earnings (sum for last 7 days including today)
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // Last 7 days including today
+        const weeklyEarnings = await paymentsCollection
+          .aggregate([
+            {
+              $match: {
+                paymentStatus: "paid",
+                PaidAt: { $gte: sevenDaysAgo, $lt: tomorrow },
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+            { $project: { _id: 0, weeklyEarnings: "$total" } },
+          ])
+          .toArray();
+        const weeklyAmount =
+          weeklyEarnings.length > 0 ? weeklyEarnings[0].weeklyEarnings : 0;
+
+        // Return as array for frontend
+        res.send([
+          { status: "Total Clubs", count: totalClubsCount },
+          { status: "Total Events", count: totalEventsCount },
+          { status: "Total Members", count: totalMembersCount },
+          { status: "Total Earnings", count: totalEarningsAmount },
+          { status: "Daily Earnings", count: dailyAmount },
+          { status: "Weekly Earnings", count: weeklyAmount },
+        ]);
       } catch (error) {
         res.status(500).send({ message: "Error fetching admin stats", error });
       }
     });
 
     // Club Manager Stats API
-    app.get("/manager-stats",firebaseToken,clubManagerVerify, async (req, res) => {
-      const email = req.decoded_email;
-      try {
-        // Total clubs created by this manager
-        const totalClubs = await clubsCollection
-          .aggregate([
-            { $match: { managerEmail: email } },
-            { $group: { _id: null, count: { $sum: 1 } } },
-            { $project: { _id: 0, totalClubs: "$count" } },
-          ])
-          .toArray();
-        const totalClubsCount =
-          totalClubs.length > 0 ? totalClubs[0].totalClubs : 0;
+    app.get(
+      "/manager-stats",
+      firebaseToken,
+      clubManagerVerify,
+      async (req, res) => {
+        const email = req.decoded_email;
+        try {
+          // Total clubs created by this manager
+          const totalClubs = await clubsCollection
+            .aggregate([
+              { $match: { managerEmail: email } },
+              { $group: { _id: null, count: { $sum: 1 } } },
+              { $project: { _id: 0, totalClubs: "$count" } },
+            ])
+            .toArray();
+          const totalClubsCount =
+            totalClubs.length > 0 ? totalClubs[0].totalClubs : 0;
 
-        // Total events created by this manager (via clubEmail)
-        const totalEvents = await eventsCollection
-          .aggregate([
-            { $match: { clubEmail: email } },
-            { $group: { _id: null, count: { $sum: 1 } } },
-            { $project: { _id: 0, totalEvents: "$count" } },
-          ])
-          .toArray();
-        const totalEventsCount =
-          totalEvents.length > 0 ? totalEvents[0].totalEvents : 0;
+          // Total events created by this manager (via clubEmail)
+          const totalEvents = await eventsCollection
+            .aggregate([
+              { $match: { clubEmail: email } },
+              { $group: { _id: null, count: { $sum: 1 } } },
+              { $project: { _id: 0, totalEvents: "$count" } },
+            ])
+            .toArray();
+          const totalEventsCount =
+            totalEvents.length > 0 ? totalEvents[0].totalEvents : 0;
 
-        // Get all clubIds managed by this email
-        const managedClubs = await clubsCollection
-          .find({ managerEmail: email })
-          .toArray();
-        const clubIds = managedClubs.map((club) => club._id.toString());
+          // Get all clubIds managed by this email
+          const managedClubs = await clubsCollection
+            .find({ managerEmail: email })
+            .toArray();
+          const clubIds = managedClubs.map((club) => club._id.toString());
 
-        // Total earnings from their clubs (sum of paid amounts for those clubIds)
-        const totalEarnings = await paymentsCollection
-          .aggregate([
-            { $match: { clubId: { $in: clubIds }, paymentStatus: "paid" } },
-            { $group: { _id: null, total: { $sum: "$amount" } } },
-            { $project: { _id: 0, totalEarnings: "$total" } },
-          ])
-          .toArray();
-        const totalEarningsAmount =
-          totalEarnings.length > 0 ? totalEarnings[0].totalEarnings : 0;
+          // Total earnings from their clubs (sum of paid amounts for those clubIds)
+          const totalEarnings = await paymentsCollection
+            .aggregate([
+              { $match: { clubId: { $in: clubIds }, paymentStatus: "paid" } },
+              { $group: { _id: null, total: { $sum: "$amount" } } },
+              { $project: { _id: 0, totalEarnings: "$total" } },
+            ])
+            .toArray();
+          const totalEarningsAmount =
+            totalEarnings.length > 0 ? totalEarnings[0].totalEarnings : 0;
 
-        // Total members in their clubs (sum of membersCount from their clubs)
-        const totalMembers = await clubsCollection
-          .aggregate([
-            { $match: { managerEmail: email } },
-            { $group: { _id: null, total: { $sum: "$membersCount" } } },
-            { $project: { _id: 0, totalMembers: "$total" } },
-          ])
-          .toArray();
-        const totalMembersCount =
-          totalMembers.length > 0 ? totalMembers[0].totalMembers : 0;
+          // Total members in their clubs (sum of membersCount from their clubs)
+          const totalMembers = await clubsCollection
+            .aggregate([
+              { $match: { managerEmail: email } },
+              { $group: { _id: null, total: { $sum: "$membersCount" } } },
+              { $project: { _id: 0, totalMembers: "$total" } },
+            ])
+            .toArray();
+          const totalMembersCount =
+            totalMembers.length > 0 ? totalMembers[0].totalMembers : 0;
 
-        res.send({
-          totalClubs: totalClubsCount,
-          totalEvents: totalEventsCount,
-          totalEarnings: totalEarningsAmount,
-          totalMembers: totalMembersCount,
-        });
-      } catch (error) {
-        res
-          .status(500)
-          .send({ message: "Error fetching manager stats", error });
+          res.send({
+            totalClubs: totalClubsCount,
+            totalEvents: totalEventsCount,
+            totalEarnings: totalEarningsAmount,
+            totalMembers: totalMembersCount,
+          });
+        } catch (error) {
+          res
+            .status(500)
+            .send({ message: "Error fetching manager stats", error });
+        }
       }
-    });
+    );
 
     // Member Stats API
-    app.get("/member-stats",firebaseToken,async (req, res) => {
+    app.get("/member-stats", firebaseToken, async (req, res) => {
       const email = req.decoded_email;
       try {
         // Total clubs joined (active memberships)
