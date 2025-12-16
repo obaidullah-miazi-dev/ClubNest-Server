@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const app = express();
+const admin = require("firebase-admin");
 const port = process.env.PORT || 3000;
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
@@ -19,6 +20,13 @@ const client = new MongoClient(uri, {
   },
 });
 
+// firebase token 
+const serviceAccount = require("./firebaseSdk.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 async function run() {
   try {
     // await client.connect();
@@ -32,6 +40,21 @@ async function run() {
     const paymentsCollection = db.collection("payments");
     const eventsCollection = db.collection("events");
     const eventRegistrationCollection = db.collection("eventRegistration");
+
+     // middleware for security
+    const firebaseToken = async (req, res, next) => {
+      const token = req.headers.authorization;
+      if (!token) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+
+      try {
+        const tokenId = token.split(" ")[1];
+        const decode = await admin.auth().verifyIdToken(tokenId);
+        req.decoded_email = decode.email;
+      } catch (err) {}
+      next();
+    };
 
     // user related apis
     app.post("/user", async (req, res) => {
@@ -119,7 +142,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/membershipGet", async (req, res) => {
+    app.get("/membershipGet",firebaseToken, async (req, res) => {
       const email = req.query.email;
       const query = {};
       if (email) {
