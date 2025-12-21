@@ -21,7 +21,10 @@ const client = new MongoClient(uri, {
 });
 
 // firebase token
-const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString("utf8");
+const decoded = Buffer.from(
+  process.env.FIREBASE_SERVICE_ACCOUNT,
+  "base64"
+).toString("utf8");
 const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
@@ -109,7 +112,7 @@ async function run() {
       res.send({ role: user?.role || "member" });
     });
 
-    app.patch("/user/:id", adminVerify, async (req, res) => {
+    app.patch("/user/:id", firebaseToken, adminVerify, async (req, res) => {
       const status = req.body.status;
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -152,6 +155,22 @@ async function run() {
         res.send(userResult);
       }
 
+      // update user role to member
+      if (status === "Club-Manager") {
+        const email = req.body.email;
+        const managerQuery = { email };
+        const updateUserInfo = {
+          $set: {
+            role: "Club-Manager",
+          },
+        };
+        const userResult = await usersCollection.updateOne(
+          managerQuery,
+          updateUserInfo
+        );
+        res.send(userResult);
+      }
+
       res.send(result);
     });
 
@@ -171,9 +190,13 @@ async function run() {
 
     app.get("/membershipGet", firebaseToken, async (req, res) => {
       const email = req.query.email;
+      const managerEmail = req.query.managerEmail;
       const query = {};
       if (email) {
         query.memberEmail = email;
+      }
+      if (managerEmail) {
+        query.managerEmail = managerEmail;
       }
       const result = await membershipCollection.find(query).toArray();
       res.send(result);
@@ -181,6 +204,7 @@ async function run() {
 
     app.patch(
       "/updateMembershipStatus/:id",
+      firebaseToken,
       clubManagerVerify,
       async (req, res) => {
         const id = req.params.id;
@@ -809,6 +833,6 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-// app.listen(port, () => {
-//   console.log(`Example app listening on port ${port}`);
-// });
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
